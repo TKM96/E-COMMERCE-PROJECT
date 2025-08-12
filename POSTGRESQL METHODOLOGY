@@ -1,0 +1,82 @@
+CREATE TABLE E_COMM_CLEAN (
+							ORDER_ID INTEGER,
+							ORDER_DATE DATE,
+							MONTH_NAME TEXT,
+							ORDER_TIME TIME WITHOUT TIME ZONE,
+							period_of_day character(300),
+							city text,
+							product_category text,
+							product text,
+							quantity integer,
+							unit_price numeric(7,2),
+							sales numeric(15,2)
+)
+
+insert into e_comm_clean (
+WITH CTE AS (
+				select order_id,
+					   to_date(left(order_date,10),'DD-MM-YYYY') AS ORDER_DATE,
+					   right(order_date, 5)::TIME AS ORDER_TIME,
+					   HOUR_OF_DAY,
+					   PERIOD_OF_DAY,
+					   MONTH_OF_YEAR,
+					   CITY,
+					   PURCHASE_ADDRESS,
+					   product_category, 
+					   product, 
+					   quantity_ordered, 
+					   price as unit_price,
+					   Sales
+				from e_comm),
+CTE1 AS (
+				SELECT order_id,
+					   ORDER_DATE,
+					   initcap(TO_CHAR(ORDER_DATE,'FMmonth')) as month_name,
+					   ORDER_TIME,
+					   period_OF_DAY,
+					   initcap(CITY) AS CITY,
+					   initcap(PURCHASE_ADDRESS) AS ADDRESS,
+					   initcap(product_category) AS PRODUCT_CATEGORY, 
+					   initcap(product) AS PRODUCT, 
+					   quantity_ordered AS QUANTITY, 
+					   unit_price,
+					   sales
+			    FROM CTE
+				
+),
+CTE2 AS (
+				SELECT *,
+					   ROW_NUMBER()OVER(PARTITION BY ORDER_ID, 
+					   								 ORDER_DATE, 
+													 MONTH_NAME,
+													 ORDER_TIME, 
+													 period_of_day,
+													 CITY, 
+													 ADDRESS,
+													 PRODUCT_CATEGORY,
+													 PRODUCT,
+													 QUANTITY,
+													 unit_PRICE,
+													 sales
+										ORDER BY ORDER_ID, ORDER_DATE) AS ROW_NUM
+				FROM CTE1
+				
+),
+CTE3 AS (
+SELECT *
+FROM CTE2
+WHERE ROW_NUM = 1)
+SELECT ORDER_ID, 
+	   ORDER_DATE, 
+	   MONTH_NAME, 
+	   ORDER_TIME, 
+	   period_of_day,
+	   CITY, 
+	   PRODUCT_CATEGORY, 
+	   PRODUCT, 
+	   QUANTITY, 
+	   unit_PRICE ,
+	   sales
+FROM CTE3);
+
+select * from e_comm_clean
